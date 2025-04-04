@@ -1,11 +1,11 @@
 using Xunit;
-using CustomMapper.Core;
+using QuickMapper.Core;
 using System;
 using System.Linq.Expressions;
 using Moq;
 using Microsoft.Extensions.Logging;
 
-namespace CustomMapper.Tests
+namespace QuickMapper.Tests
 {
     public class Source
     {

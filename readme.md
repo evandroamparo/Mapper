@@ -1,6 +1,6 @@
-# CustomMapper
+# QuickMapper
 
-CustomMapper is a lightweight and flexible object mapping library for .NET projects. Designed as an alternative to AutoMapper, it offers complete control, custom configurations, and advanced support for various features.
+QuickMapper is a lightweight and flexible object mapping library for .NET projects. Designed as an alternative to AutoMapper, it offers complete control, custom configurations, and advanced support for various features.
 
 ---
 
@@ -30,5 +30,5 @@ CustomMapper is a lightweight and flexible object mapping library for .NET proje
    - Navigate to the library folder and select the file.
 3. Import the namespace:
    ```csharp
-   using CustomMapper;
+   using QuickMapper;
    ```

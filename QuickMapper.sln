@@ -2,9 +2,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomMapper.Core", "CustomMapper.Core\CustomMapper.Core.csproj", "{5E8C1C1B-F05F-4F6A-B8B9-B9C6E3A0B3A0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuickMapper.Core", "QuickMapper.Core\QuickMapper.Core.csproj", "{5E8C1C1B-F05F-4F6A-B8B9-B9C6E3A0B3A0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomMapper.Tests", "CustomMapper.Tests\CustomMapper.Tests.csproj", "{9E8C1C1B-F05F-4F6A-B8B9-B9C6E3A0B3A1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuickMapper.Tests", "QuickMapper.Tests\QuickMapper.Tests.csproj", "{9E8C1C1B-F05F-4F6A-B8B9-B9C6E3A0B3A1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

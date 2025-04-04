@@ -1,10 +1,10 @@
 using Xunit;
-using CustomMapper.Core;
+using QuickMapper.Core;
 using System;
 using Moq;
 using Microsoft.Extensions.Logging;
 
-namespace CustomMapper.Tests
+namespace QuickMapper.Tests
 {
     public class SourceWithValidation
     {
