@@ -32,3 +32,9 @@ QuickMapper is a lightweight and flexible object mapping library for .NET projec
    ```csharp
    using QuickMapper;
    ```
+
+## Todo
+
+  - [ ] Code cleanup
+  - [ ] Add more unit tests
+  - [ ] Publish as a Nuget package
