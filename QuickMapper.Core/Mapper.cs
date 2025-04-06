@@ -35,6 +35,8 @@ namespace QuickMapper.Core
             {
                 _mappings[key] = (src, dest) =>
                 {
+                    if (src == null || dest == null) return;
+
                     foreach (var prop in typeof(TDestination).GetProperties())
                     {
                         if (_ignoredProperties.Contains(prop.Name))
@@ -43,12 +45,107 @@ namespace QuickMapper.Core
                         var sourceProp = typeof(TSource).GetProperty(prop.Name);
                         if (sourceProp != null && prop.CanWrite)
                         {
-                            prop.SetValue(dest, sourceProp.GetValue(src));
+                            var value = sourceProp.GetValue(src);
+                            if (value == null)
+                            {
+                                prop.SetValue(dest, null);
+                                continue;
+                            }
+
+                            // Check for custom mapping
+                            if (_memberMappings.ContainsKey(key) && _memberMappings[key].ContainsKey(prop.Name))
+                            {
+                                var convertedValue = _memberMappings[key][prop.Name](src);
+                                prop.SetValue(dest, convertedValue);
+                                continue;
+                            }
+
+                            // Handle collections
+                            if (IsCollectionType(sourceProp.PropertyType) && IsCollectionType(prop.PropertyType))
+                            {
+                                var destCollection = CreateDestinationCollection(value, prop.PropertyType);
+                                prop.SetValue(dest, destCollection);
+                                continue;
+                            }
+
+                            // Handle nested objects
+                            if (!IsSimpleType(sourceProp.PropertyType))
+                            {
+                                var nestedKey = (sourceProp.PropertyType, prop.PropertyType);
+                                if (_mappings.ContainsKey(nestedKey))
+                                {
+                                    var nestedInstance = Activator.CreateInstance(prop.PropertyType);
+                                    if (nestedInstance != null)
+                                    {
+                                        _mappings[nestedKey](value, nestedInstance);
+                                        prop.SetValue(dest, nestedInstance);
+                                    }
+                                    continue;
+                                }
+                            }
+
+                            // Simple property mapping
+                            prop.SetValue(dest, value);
                         }
                     }
                 };
                 _memberMappings[key] = new Dictionary<string, Func<object, object>>();
             }
+        }
+
+        private bool IsSimpleType(Type type)
+        {
+            return type.IsPrimitive || 
+                   type.IsEnum || 
+                   type == typeof(string) || 
+                   type == typeof(decimal) || 
+                   type == typeof(DateTime);
+        }
+
+        private bool IsCollectionType(Type type)
+        {
+            return type.IsGenericType && 
+                   (type.GetGenericTypeDefinition() == typeof(List<>) ||
+                    type.GetGenericTypeDefinition() == typeof(IList<>) ||
+                    type.GetGenericTypeDefinition() == typeof(ICollection<>));
+        }
+
+        private object CreateDestinationCollection(object sourceCollection, Type destinationType)
+        {
+            var sourceList = (System.Collections.IEnumerable)sourceCollection;
+            var destListType = destinationType;
+            
+            if (destinationType.IsInterface)
+            {
+                destListType = typeof(List<>).MakeGenericType(destinationType.GetGenericArguments()[0]);
+            }
+
+            var destList = (System.Collections.IList)Activator.CreateInstance(destListType);
+            var elementType = destinationType.GetGenericArguments()[0];
+
+            foreach (var item in sourceList)
+            {
+                if (item == null) continue;
+
+                var sourceType = item.GetType();
+                var itemKey = (sourceType, elementType);
+
+                if (_mappings.ContainsKey(itemKey))
+                {
+                    var destItem = Activator.CreateInstance(elementType);
+                    if (destItem != null)
+                    {
+                        _mappings[itemKey](item, destItem);
+                        destList.Add(destItem);
+                    }
+                }
+                else
+                {
+                    destList.Add(item);
+                }
+            }
+
+            return destList;
         }
 
         public void CreateReverseMap<TSource, TDestination>()
@@ -78,8 +175,23 @@ namespace QuickMapper.Core
             Func<object, TMember> mapFrom)
         {
             var key = (typeof(TSource), typeof(TDestination));
+            if (!_memberMappings.ContainsKey(key))
+            {
+                _memberMappings[key] = new Dictionary<string, Func<object, object>>();
+            }
+            
             var memberName = ((MemberExpression)destinationMember.Body).Member.Name;
-            _memberMappings[key][memberName] = src => mapFrom(src);
+            var sourceType = typeof(TSource);
+            _memberMappings[key][memberName] = src => 
+            {
+                var sourceProp = sourceType.GetProperty(memberName);
+                if (sourceProp != null)
+                {
+                    var value = sourceProp.GetValue(src);
+                    return mapFrom(value);
+                }
+                return mapFrom(src);
+            };
         }
 
         public TDestination Map<TSource, TDestination>(TSource source) where TDestination : new()
@@ -109,12 +221,16 @@ namespace QuickMapper.Core
             var destination = new TDestination();
             _mappings[key](source, destination);
 
+            // Only apply custom mappings for non-ignored properties
             foreach (var memberMapping in _memberMappings[key])
             {
-                var property = typeof(TDestination).GetProperty(memberMapping.Key);
-                if (property != null)
+                if (!_ignoredProperties.Contains(memberMapping.Key))
                 {
-                    property.SetValue(destination, memberMapping.Value(source));
+                    var property = typeof(TDestination).GetProperty(memberMapping.Key);
+                    if (property != null)
+                    {
+                        property.SetValue(destination, memberMapping.Value(source));
+                    }
                 }
             }
 
