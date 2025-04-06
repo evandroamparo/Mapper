@@ -10,6 +10,7 @@ namespace QuickMapper.Tests
     {
         public int Id { get; set; }
         public string Name { get; set; }
+        public string Description { get; set; }
     }
 
     public class DestinationWithConversion
@@ -38,9 +39,9 @@ namespace QuickMapper.Tests
             _mapper.AddValidator(obj => obj is SourceWithValidation src && src.Id > 0);
 
             // Act & Assert
-            Assert.Throws<InvalidOperationException>(() => 
+            Assert.Throws<InvalidOperationException>(() =>
                 _mapper.Map<SourceWithValidation, DestinationWithConversion>(source));
-            
+
             _loggerMock.Verify(
                 x => x.Log(
                     LogLevel.Error,
@@ -89,14 +90,71 @@ namespace QuickMapper.Tests
             _mapper.AddValidator(obj => obj is SourceWithValidation src && !string.IsNullOrEmpty(src.Name));
 
             // Act & Assert
-            Assert.Throws<InvalidOperationException>(() => 
+            Assert.Throws<InvalidOperationException>(() =>
                 _mapper.Map<SourceWithValidation, DestinationWithConversion>(source));
-            
+
             _loggerMock.Verify(
                 x => x.Log(
                     LogLevel.Error,
                     It.IsAny<EventId>(),
                     It.Is<It.IsAnyType>((o, t) => o.ToString().Contains("Validation failed")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()
+                ),
+                Times.Once);
+        }
+
+        [Fact]
+        public void Map_BasicMapping_ShouldLogSuccess()
+        {
+            // Arrange
+            var source = new SourceWithValidation { Id = 1, Name = "Test" };
+            _mapper.CreateMap<SourceWithValidation, DestinationWithConversion>();
+
+            // Act
+            var result = _mapper.Map<SourceWithValidation, DestinationWithConversion>(source);
+
+            // Assert
+            Assert.NotNull(result);
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((o, t) => o.ToString().Contains("Successfully mapped")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()
+                ),
+                Times.Once);
+        }
+
+        [Fact]
+        public void Map_WithIgnoredProperty_ShouldLogIgnoredProperty()
+        {
+            // Arrange
+            var source = new SourceWithValidation { Id = 1, Name = "Test", Description = "Ignore me" };
+            _mapper.CreateMap<SourceWithValidation, DestinationWithConversion>();
+            _mapper.IgnoreProperty<SourceWithValidation>(s => s.Description);
+
+            // Act
+            var result = _mapper.Map<SourceWithValidation, DestinationWithConversion>(source);
+
+            // Assert
+            Assert.NotNull(result);
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((o, t) => o.ToString().Contains("Property Description marked as ignored")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()
+                ),
+                Times.Once);
+
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((o, t) => o.ToString().Contains("Successfully mapped")),
                     It.IsAny<Exception>(),
                     It.IsAny<Func<It.IsAnyType, Exception, string>>()
                 ),
