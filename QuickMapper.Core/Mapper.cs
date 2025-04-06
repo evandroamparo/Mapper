@@ -11,8 +11,8 @@ namespace QuickMapper.Core
         void AddValidator(Func<object, bool> validator);
         TDestination Map<TSource, TDestination>(TSource source) where TDestination : new();
         void ForMember<TSource, TDestination, TMember>(
-            Expression<Func<TDestination, TMember>> destinationMember,
-            Func<object, TMember> mapFrom);
+            Expression<Func<TDestination, TMember?>> destinationMember,
+            Func<object, TMember?> mapFrom);
     }
 
     public class Mapper : IMapper
@@ -39,79 +39,101 @@ namespace QuickMapper.Core
 
                     foreach (var prop in typeof(TDestination).GetProperties())
                     {
-                        if (_ignoredProperties.Contains(prop.Name))
-                            continue;
-
-                        var sourceProp = typeof(TSource).GetProperty(prop.Name);
-                        if (sourceProp != null && prop.CanWrite)
-                        {
-                            var value = sourceProp.GetValue(src);
-                            if (value == null)
-                            {
-                                prop.SetValue(dest, null);
-                                continue;
-                            }
-
-                            // Check for custom mapping
-                            if (_memberMappings.ContainsKey(key) && _memberMappings[key].ContainsKey(prop.Name))
-                            {
-                                var convertedValue = _memberMappings[key][prop.Name](src);
-                                prop.SetValue(dest, convertedValue);
-                                continue;
-                            }
-
-                            // Handle collections
-                            if (IsCollectionType(sourceProp.PropertyType) && IsCollectionType(prop.PropertyType))
-                            {
-                                var destCollection = CreateDestinationCollection(value, prop.PropertyType);
-                                prop.SetValue(dest, destCollection);
-                                continue;
-                            }
-
-                            // Handle nested objects
-                            if (!IsSimpleType(sourceProp.PropertyType))
-                            {
-                                var nestedKey = (sourceProp.PropertyType, prop.PropertyType);
-                                if (_mappings.ContainsKey(nestedKey))
-                                {
-                                    var nestedInstance = Activator.CreateInstance(prop.PropertyType);
-                                    if (nestedInstance != null)
-                                    {
-                                        _mappings[nestedKey](value, nestedInstance);
-                                        prop.SetValue(dest, nestedInstance);
-                                    }
-                                    continue;
-                                }
-                            }
-
-                            // Simple property mapping
-                            prop.SetValue(dest, value);
-                        }
+                        MapProperty(key, prop, src, dest);
                     }
                 };
                 _memberMappings[key] = new Dictionary<string, Func<object, object>>();
             }
         }
 
-        private bool IsSimpleType(Type type)
+        private void MapProperty((Type, Type) key, System.Reflection.PropertyInfo destProp, object src, object dest)
         {
-            return type.IsPrimitive || 
-                   type.IsEnum || 
-                   type == typeof(string) || 
-                   type == typeof(decimal) || 
-                   type == typeof(DateTime);
+            if (_ignoredProperties.Contains(destProp.Name))
+                return;
+
+            var sourceProp = key.Item1.GetProperty(destProp.Name);
+            if (sourceProp == null || !destProp.CanWrite)
+                return;
+
+            var value = sourceProp.GetValue(src);
+            if (value == null)
+            {
+                destProp.SetValue(dest, null);
+                return;
+            }
+
+            if (TryCustomMapping(key, destProp.Name, src, dest, destProp))
+                return;
+
+            if (TryCollectionMapping(sourceProp, destProp, value, dest))
+                return;
+
+            if (TryNestedObjectMapping(sourceProp, destProp, value, dest))
+                return;
+
+            // Simple property mapping
+            destProp.SetValue(dest, value);
         }
 
-        private bool IsCollectionType(Type type)
+        private bool TryCustomMapping((Type, Type) key, string propName, object src, object dest, System.Reflection.PropertyInfo destProp)
         {
-            return type.IsGenericType && 
-                   (type.GetGenericTypeDefinition() == typeof(List<>) ||
-                    type.GetGenericTypeDefinition() == typeof(IList<>) ||
-                    type.GetGenericTypeDefinition() == typeof(ICollection<>));
+            if (_memberMappings.ContainsKey(key) && _memberMappings[key].ContainsKey(propName))
+            {
+                var convertedValue = _memberMappings[key][propName](src);
+                destProp.SetValue(dest, convertedValue);
+                return true;
+            }
+            return false;
         }
+
+        private bool TryCollectionMapping(System.Reflection.PropertyInfo sourceProp, System.Reflection.PropertyInfo destProp, object value, object dest)
+        {
+            if (IsCollectionType(sourceProp.PropertyType) && IsCollectionType(destProp.PropertyType))
+            {
+                var destCollection = CreateDestinationCollection(value, destProp.PropertyType);
+                destProp.SetValue(dest, destCollection);
+                return true;
+            }
+            return false;
+        }
+
+        private bool TryNestedObjectMapping(System.Reflection.PropertyInfo sourceProp, System.Reflection.PropertyInfo destProp, object value, object dest)
+        {
+            if (!IsSimpleType(sourceProp.PropertyType))
+            {
+                var nestedKey = (sourceProp.PropertyType, destProp.PropertyType);
+                if (_mappings.ContainsKey(nestedKey))
+                {
+                    var nestedInstance = Activator.CreateInstance(destProp.PropertyType);
+                    if (nestedInstance != null)
+                    {
+                        _mappings[nestedKey](value, nestedInstance);
+                        destProp.SetValue(dest, nestedInstance);
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private bool IsSimpleType(Type type) =>
+            type.IsPrimitive || 
+            type.IsEnum || 
+            type == typeof(string) || 
+            type == typeof(decimal) || 
+            type == typeof(DateTime);
+
+        private bool IsCollectionType(Type type) =>
+            type.IsGenericType && 
+            (type.GetGenericTypeDefinition() == typeof(List<>) ||
+             type.GetGenericTypeDefinition() == typeof(IList<>) ||
+             type.GetGenericTypeDefinition() == typeof(ICollection<>));
 
         private object CreateDestinationCollection(object sourceCollection, Type destinationType)
         {
+            if (sourceCollection == null)
+                throw new ArgumentNullException(nameof(sourceCollection));
+
             var sourceList = (System.Collections.IEnumerable)sourceCollection;
             var destListType = destinationType;
             
@@ -120,7 +142,11 @@ namespace QuickMapper.Core
                 destListType = typeof(List<>).MakeGenericType(destinationType.GetGenericArguments()[0]);
             }
 
-            var destList = (System.Collections.IList)Activator.CreateInstance(destListType);
+            var destList = Activator.CreateInstance(destListType);
+            if (destList == null)
+                throw new InvalidOperationException($"Failed to create collection of type {destListType}");
+
+            var typedDestList = (System.Collections.IList)destList;
             var elementType = destinationType.GetGenericArguments()[0];
 
             foreach (var item in sourceList)
@@ -136,16 +162,16 @@ namespace QuickMapper.Core
                     if (destItem != null)
                     {
                         _mappings[itemKey](item, destItem);
-                        destList.Add(destItem);
+                        typedDestList.Add(destItem);
                     }
                 }
                 else
                 {
-                    destList.Add(item);
+                    typedDestList.Add(item);
                 }
             }
 
-            return destList;
+            return typedDestList;
         }
 
         public void CreateReverseMap<TSource, TDestination>()
@@ -171,9 +197,12 @@ namespace QuickMapper.Core
         }
 
         public void ForMember<TSource, TDestination, TMember>(
-            Expression<Func<TDestination, TMember>> destinationMember,
-            Func<object, TMember> mapFrom)
+            Expression<Func<TDestination, TMember?>> destinationMember,
+            Func<object, TMember?> mapFrom)
         {
+            ArgumentNullException.ThrowIfNull(destinationMember);
+            ArgumentNullException.ThrowIfNull(mapFrom);
+
             var key = (typeof(TSource), typeof(TDestination));
             if (!_memberMappings.ContainsKey(key))
             {
@@ -184,13 +213,17 @@ namespace QuickMapper.Core
             var sourceType = typeof(TSource);
             _memberMappings[key][memberName] = src => 
             {
+                ArgumentNullException.ThrowIfNull(src);
+                
                 var sourceProp = sourceType.GetProperty(memberName);
                 if (sourceProp != null)
                 {
                     var value = sourceProp.GetValue(src);
-                    return mapFrom(value);
+#pragma warning disable CS8603 // Possible null reference return - intentional for nullable types
+                    return mapFrom(value ?? src);
                 }
                 return mapFrom(src);
+#pragma warning restore CS8603
             };
         }
 
