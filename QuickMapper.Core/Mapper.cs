@@ -15,18 +15,13 @@ namespace QuickMapper.Core
             Func<object, TMember?> mapFrom);
     }
 
-    public class Mapper : IMapper
+    public class Mapper(ILogger<Mapper> logger) : IMapper
     {
-        private readonly Dictionary<(Type, Type), Action<object, object>> _mappings = new();
-        private readonly Dictionary<(Type, Type), Dictionary<string, Func<object, object>>> _memberMappings = new();
-        private readonly List<Func<object, bool>> _validators = new();
-        private readonly HashSet<string> _ignoredProperties = new();
-        private readonly ILogger<Mapper> _logger;
-
-        public Mapper(ILogger<Mapper> logger)
-        {
-            _logger = logger;
-        }
+        private readonly Dictionary<(Type, Type), Action<object, object>> _mappings = [];
+        private readonly Dictionary<(Type, Type), Dictionary<string, Func<object, object>>> _memberMappings = [];
+        private readonly List<Func<object, bool>> _validators = [];
+        private readonly HashSet<string> _ignoredProperties = [];
+        private readonly ILogger<Mapper> _logger = logger;
 
         public void CreateMap<TSource, TDestination>()
         {
@@ -42,7 +37,7 @@ namespace QuickMapper.Core
                         MapProperty(key, prop, src, dest);
                     }
                 };
-                _memberMappings[key] = new Dictionary<string, Func<object, object>>();
+                _memberMappings[key] = [];
             }
         }
 
@@ -77,9 +72,9 @@ namespace QuickMapper.Core
 
         private bool TryCustomMapping((Type, Type) key, string propName, object src, object dest, System.Reflection.PropertyInfo destProp)
         {
-            if (_memberMappings.ContainsKey(key) && _memberMappings[key].ContainsKey(propName))
+            if (_memberMappings.TryGetValue(key, out var value) && value.ContainsKey(propName))
             {
-                var convertedValue = _memberMappings[key][propName](src);
+                var convertedValue = value[propName](src);
                 destProp.SetValue(dest, convertedValue);
                 return true;
             }
@@ -116,36 +111,32 @@ namespace QuickMapper.Core
             return false;
         }
 
-        private bool IsSimpleType(Type type) =>
-            type.IsPrimitive || 
-            type.IsEnum || 
-            type == typeof(string) || 
-            type == typeof(decimal) || 
+        private static bool IsSimpleType(Type type) =>
+            type.IsPrimitive ||
+            type.IsEnum ||
+            type == typeof(string) ||
+            type == typeof(decimal) ||
             type == typeof(DateTime);
 
-        private bool IsCollectionType(Type type) =>
-            type.IsGenericType && 
+        private static bool IsCollectionType(Type type) =>
+            type.IsGenericType &&
             (type.GetGenericTypeDefinition() == typeof(List<>) ||
              type.GetGenericTypeDefinition() == typeof(IList<>) ||
              type.GetGenericTypeDefinition() == typeof(ICollection<>));
 
         private object CreateDestinationCollection(object sourceCollection, Type destinationType)
         {
-            if (sourceCollection == null)
-                throw new ArgumentNullException(nameof(sourceCollection));
+            ArgumentNullException.ThrowIfNull(sourceCollection);
 
             var sourceList = (System.Collections.IEnumerable)sourceCollection;
             var destListType = destinationType;
-            
+
             if (destinationType.IsInterface)
             {
                 destListType = typeof(List<>).MakeGenericType(destinationType.GetGenericArguments()[0]);
             }
 
-            var destList = Activator.CreateInstance(destListType);
-            if (destList == null)
-                throw new InvalidOperationException($"Failed to create collection of type {destListType}");
-
+            var destList = Activator.CreateInstance(destListType) ?? throw new InvalidOperationException($"Failed to create collection of type {destListType}");
             var typedDestList = (System.Collections.IList)destList;
             var elementType = destinationType.GetGenericArguments()[0];
 
@@ -182,7 +173,7 @@ namespace QuickMapper.Core
 
         public void IgnoreProperty<TSource>(Expression<Func<TSource, object>> propertyExpression)
         {
-            var memberExpr = propertyExpression.Body as MemberExpression 
+            var memberExpr = propertyExpression.Body as MemberExpression
                            ?? ((UnaryExpression)propertyExpression.Body).Operand as MemberExpression;
             if (memberExpr != null)
             {
@@ -204,17 +195,18 @@ namespace QuickMapper.Core
             ArgumentNullException.ThrowIfNull(mapFrom);
 
             var key = (typeof(TSource), typeof(TDestination));
-            if (!_memberMappings.ContainsKey(key))
+            if (!_memberMappings.TryGetValue(key, out var value))
             {
-                _memberMappings[key] = new Dictionary<string, Func<object, object>>();
+                value = [];
+                _memberMappings[key] = value;
             }
-            
+
             var memberName = ((MemberExpression)destinationMember.Body).Member.Name;
             var sourceType = typeof(TSource);
-            _memberMappings[key][memberName] = src => 
+            value[memberName] = src =>
             {
                 ArgumentNullException.ThrowIfNull(src);
-                
+
                 var sourceProp = sourceType.GetProperty(memberName);
                 if (sourceProp != null)
                 {
@@ -245,14 +237,14 @@ namespace QuickMapper.Core
             }
 
             var key = (typeof(TSource), typeof(TDestination));
-            if (!_mappings.ContainsKey(key))
+            if (!_mappings.TryGetValue(key, out var value))
             {
                 _logger.LogError("No mapping defined for {SourceType} to {DestType}", typeof(TSource).Name, typeof(TDestination).Name);
                 throw new InvalidOperationException($"No mapping defined for {typeof(TSource)} to {typeof(TDestination)}");
             }
 
             var destination = new TDestination();
-            _mappings[key](source, destination);
+            value(source, destination);
 
             // Only apply custom mappings for non-ignored properties
             foreach (var memberMapping in _memberMappings[key])
@@ -260,10 +252,7 @@ namespace QuickMapper.Core
                 if (!_ignoredProperties.Contains(memberMapping.Key))
                 {
                     var property = typeof(TDestination).GetProperty(memberMapping.Key);
-                    if (property != null)
-                    {
-                        property.SetValue(destination, memberMapping.Value(source));
-                    }
+                    property?.SetValue(destination, memberMapping.Value(source));
                 }
             }
 

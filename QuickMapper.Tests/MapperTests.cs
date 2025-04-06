@@ -125,11 +125,11 @@ namespace QuickMapper.Tests
             var source = new SourceCollection
             {
                 Id = 1,
-                Items = new List<SourceItem>
-            {
+                Items =
+            [
                 new SourceItem { Id = 101, Description = "Item 1" },
                 new SourceItem { Id = 102, Description = "Item 2" }
-            }
+            ]
             };
 
             var destination = _mapper.Map<SourceCollection, DestinationCollection>(source);
@@ -161,7 +161,7 @@ namespace QuickMapper.Tests
 
             var source = new Source { Id = 1, Name = "Test", Description = "Ignore" };
             var destination = _mapper.Map<Source, Destination>(source);
-                
+
             Assert.Equal(source.Id, destination.Id);
             Assert.Equal(source.Name, destination.Name);
             Assert.Null(destination.Description);
