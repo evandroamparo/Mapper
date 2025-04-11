@@ -8,11 +8,11 @@ namespace QuickMapper.Core
         void CreateMap<TSource, TDestination>();
         void CreateReverseMap<TSource, TDestination>();
         void IgnoreProperty<TSource>(Expression<Func<TSource, object>> propertyExpression);
-        void AddValidator(Func<object, bool> validator);
+        void AddValidator<TSource>(Func<TSource, bool> validator);
         TDestination Map<TSource, TDestination>(TSource source) where TDestination : new();
         void ForMember<TSource, TDestination, TMember>(
             Expression<Func<TDestination, TMember?>> destinationMember,
-            Func<object, TMember?> mapFrom);
+            Func<TSource, TMember?> mapFrom);
     }
 
     public class Mapper(ILogger<Mapper> logger) : IMapper
@@ -182,14 +182,14 @@ namespace QuickMapper.Core
             }
         }
 
-        public void AddValidator(Func<object, bool> validator)
+        public void AddValidator<TSource>(Func<TSource, bool> validator)
         {
-            _validators.Add(validator);
+            _validators.Add(src => validator((TSource)src));
         }
 
         public void ForMember<TSource, TDestination, TMember>(
             Expression<Func<TDestination, TMember?>> destinationMember,
-            Func<object, TMember?> mapFrom)
+            Func<TSource, TMember?> mapFrom)
         {
             ArgumentNullException.ThrowIfNull(destinationMember);
             ArgumentNullException.ThrowIfNull(mapFrom);
@@ -207,15 +207,16 @@ namespace QuickMapper.Core
             {
                 ArgumentNullException.ThrowIfNull(src);
 
-                var sourceProp = sourceType.GetProperty(memberName);
-                if (sourceProp != null)
-                {
-                    var value = sourceProp.GetValue(src);
-#pragma warning disable CS8603 // Possible null reference return - intentional for nullable types
-                    return mapFrom(value ?? src);
-                }
-                return mapFrom(src);
-#pragma warning restore CS8603
+                //                 var sourceProp = sourceType.GetProperty(memberName);
+                //                 if (sourceProp != null)
+                //                 {
+                //                     var value = sourceProp.GetValue(src);
+                // #pragma warning disable CS8603 // Possible null reference return - intentional for nullable types
+                //                     return mapFrom((TSource)src);
+                //                 }
+#pragma warning disable CS8603 // Possible null reference return.
+                return mapFrom((TSource)src);
+#pragma warning restore CS8603 // Possible null reference return.
             };
         }
 

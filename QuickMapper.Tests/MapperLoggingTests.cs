@@ -36,7 +36,7 @@ namespace QuickMapper.Tests
             // Arrange
             var source = new SourceWithValidation { Id = -1, Name = "Test" };
             _mapper.CreateMap<SourceWithValidation, DestinationWithConversion>();
-            _mapper.AddValidator(obj => obj is SourceWithValidation src && src.Id > 0);
+            _mapper.AddValidator<SourceWithValidation>(source => source.Id > 0);
 
             // Act & Assert
             Assert.Throws<InvalidOperationException>(() =>
@@ -86,8 +86,8 @@ namespace QuickMapper.Tests
             // Arrange
             var source = new SourceWithValidation { Id = 1, Name = null };
             _mapper.CreateMap<SourceWithValidation, DestinationWithConversion>();
-            _mapper.AddValidator(obj => obj is SourceWithValidation src && src.Id > 0);
-            _mapper.AddValidator(obj => obj is SourceWithValidation src && !string.IsNullOrEmpty(src.Name));
+            _mapper.AddValidator<SourceWithValidation>(source => source.Id > 0);
+            _mapper.AddValidator<SourceWithValidation>(source => !string.IsNullOrEmpty(source.Name));
 
             // Act & Assert
             Assert.Throws<InvalidOperationException>(() =>

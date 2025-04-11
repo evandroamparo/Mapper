@@ -144,7 +144,7 @@ namespace QuickMapper.Tests
         public void Should_Apply_Custom_Converters()
         {
             _mapper.CreateMap<Source, Destination>();
-            _mapper.ForMember<Source, Destination, string>(dest => dest.Name, value => value.ToString().ToUpper());
+            _mapper.ForMember<Source, Destination, string>(dest => dest.Name, value => value.Name.ToUpper());
 
             var source = new Source { Id = 1, Name = "Test" };
             var destination = _mapper.Map<Source, Destination>(source);
@@ -170,9 +170,8 @@ namespace QuickMapper.Tests
         [Fact]
         public void Should_Validate_Before_Mapping()
         {
-            _mapper.AddValidator(obj =>
+            _mapper.AddValidator<Source>(source =>
             {
-                var source = obj as Source;
                 return source != null && source.Id > 0 && !string.IsNullOrEmpty(source.Name);
             });
 
