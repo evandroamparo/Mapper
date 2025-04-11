@@ -21,7 +21,7 @@ var userDto = new UserDto { Name = "John Doe", Age = 30 };
 var userEntity = mapper.Map<UserDto, UserEntity>(userDto);
 Console.WriteLine($"Mapped User: {userEntity.Name}, Age: {userEntity.Age}");
 
- // Mapping of nested objects
+// Mapping of nested objects
 var userWithAddressDto = new UserWithAddressDto
 {
     Name = "Jane Doe",
@@ -30,7 +30,7 @@ var userWithAddressDto = new UserWithAddressDto
 var userWithAddressEntity = mapper.Map<UserWithAddressDto, UserEntity>(userWithAddressDto);
 Console.WriteLine($"Mapped User with Address: {userWithAddressEntity.Name}, Address: {userWithAddressEntity.Address.Street}, {userWithAddressEntity.Address.City}");
 
- // Mapping of collections
+// Mapping of collections
 var orderDto = new OrderDto
 {
     Items =
@@ -60,7 +60,7 @@ var reverseEntity = new UserEntity { Name = "Carlos", Age = 40 };
 var reverseDto = mapper.Map<UserEntity, UserDto>(reverseEntity);
 Console.WriteLine($"Reversed UserDto: {reverseDto.Name}, {reverseDto.Age}");
 
-// Validator exemple
+// Validator example
 mapper.AddValidator<UserDto>(user =>
 {
     if (string.IsNullOrWhiteSpace(user.Name))
@@ -77,7 +77,7 @@ try
 }
 catch (Exception ex)
 {
-    Console.WriteLine($"❌ Validação falhou: {ex.Message}");
+    Console.WriteLine($"❌ Validation failed: {ex.Message}");
 }
 
 void ConfigureMappings(IMapper mapper)
