@@ -164,3 +164,31 @@ public void ConfigureServices(IServiceCollection services)
   - [ ] Code cleanup
   - [ ] Add more unit tests
   - [ ] Publish as a NuGet package
+
+## Other improvements
+
+Some drawbacks usually found in mapping libraries
+
+### Implement Compile-Time Mapping Validation
+
+**Goal:** Reduce hidden errors when mapping profiles are outdated.  
+**Action:** Use code generators or source generators to validate mapping profiles during compilation, ensuring that all mappings are correct before runtime.
+
+### Optimize Reflection Usage
+
+**Goal:** Improve performance by reducing the overhead caused by heavy reflection usage.  
+**Action:** Implement caching for reflection data and use compiled expressions to speed up mapping operations.
+
+### Improve Debugging Support
+
+**Goal:** Make it easier to identify and fix issues during the mapping process.  
+**Action:** Add detailed logs, more informative error messages, and possibly integrate with debugging tools to trace the mapping flow.
+
+### Simplify Configuration for Custom Logic
+
+**Goal:** Make the setup of custom mappings more intuitive and less error-prone.  
+**Action:** Refine the API to support fluent configurations and provide clearer methods for defining custom mappings and ignoring properties.
+### Enhance Code Navigation in Large Codebases
+
+**Goal:** Improve code navigation and maintainability in large-scale projects.  
+**Action:** Use code generators to create explicit references and support navigation, and integrate with advanced IDE features to help locate specific mappings more easily.
