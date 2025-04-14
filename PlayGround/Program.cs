@@ -82,11 +82,11 @@ catch (Exception ex)
 
 void ConfigureMappings(IMapper mapper)
 {
-    mapper.CreateMap<UserDto, UserEntity>();
-    mapper.CreateMap<UserWithAddressDto, UserEntity>();
-    mapper.CreateMap<AddressDto, AddressDto>(); // Caso queira fazer deep copy de Address
-    mapper.CreateMap<OrderDto, Order>();
-    mapper.CreateMap<ItemDto, Item>();
+    mapper.CreateMap<UserDto, UserEntity>()
+          .CreateMap<UserWithAddressDto, UserEntity>()
+          .CreateMap<AddressDto, AddressDto>() // Caso queira fazer deep copy de Address
+          .CreateMap<OrderDto, Order>()
+          .CreateMap<ItemDto, Item>();
 
     // Bidirecional
     mapper.CreateReverseMap<UserDto, UserEntity>();

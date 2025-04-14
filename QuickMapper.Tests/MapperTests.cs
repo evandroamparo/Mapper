@@ -143,8 +143,8 @@ namespace QuickMapper.Tests
         [Fact]
         public void Should_Apply_Custom_Converters()
         {
-            _mapper.CreateMap<Source, Destination>();
-            _mapper.ForMember<Source, Destination, string>(dest => dest.Name, value => value.Name.ToUpper());
+            _mapper.CreateMap<Source, Destination>()
+                .ForMember<Source, Destination, string>(dest => dest.Name, value => value.Name.ToUpper());
 
             var source = new Source { Id = 1, Name = "Test" };
             var destination = _mapper.Map<Source, Destination>(source);
@@ -156,8 +156,8 @@ namespace QuickMapper.Tests
         [Fact]
         public void Should_Skip_Ignored_Properties()
         {
-            _mapper.IgnoreProperty<Source>(f => f.Description);
-            _mapper.CreateMap<Source, Destination>();
+            _mapper.CreateMap<Source, Destination>()
+                .IgnoreProperty<Source>(f => f.Description);
 
             var source = new Source { Id = 1, Name = "Test", Description = "Ignore" };
             var destination = _mapper.Map<Source, Destination>(source);
@@ -170,12 +170,12 @@ namespace QuickMapper.Tests
         [Fact]
         public void Should_Validate_Before_Mapping()
         {
-            _mapper.AddValidator<Source>(source =>
-            {
-                return source != null && source.Id > 0 && !string.IsNullOrEmpty(source.Name);
-            });
+            _mapper.CreateMap<Source, Destination>()
+                .AddValidator<Source>(source =>
+                {
+                    return source != null && source.Id > 0 && !string.IsNullOrEmpty(source.Name);
+                });
 
-            _mapper.CreateMap<Source, Destination>();
 
             var validSource = new Source { Id = 1, Name = "Test" };
             var invalidSource = new Source { Id = 0, Name = "" };
@@ -189,8 +189,8 @@ namespace QuickMapper.Tests
         [Fact]
         public void Should_Create_Bidirectional_Mappings()
         {
-            _mapper.CreateMap<Source, Destination>();
-            _mapper.CreateReverseMap<Source, Destination>();
+            _mapper.CreateMap<Source, Destination>()
+                .CreateReverseMap<Source, Destination>();
 
             var source = new Source { Id = 1, Name = "Test" };
             var destination = _mapper.Map<Source, Destination>(source);
@@ -252,8 +252,8 @@ namespace QuickMapper.Tests
         {
             // Arrange
             var source = new Source { Id = 1, Name = "Test", Description = "Test Description" };
-            _mapper.CreateMap<Source, Destination>();
-            _mapper.IgnoreProperty<Source>(s => s.Description);
+            _mapper.CreateMap<Source, Destination>()
+                .IgnoreProperty<Source>(s => s.Description);
 
             // Act
             var result = _mapper.Map<Source, Destination>(source);
@@ -268,12 +268,12 @@ namespace QuickMapper.Tests
         public void Should_Keep_Properties_Ignored_Even_With_Custom_Mapping()
         {
             // Arrange
-            _mapper.IgnoreProperty<Source>(s => s.Description);
-            _mapper.CreateMap<Source, Destination>();
-            _mapper.ForMember<Source, Destination, string>(
-                dest => dest.Description,
-                value => "Custom Value"
-            );
+            _mapper.CreateMap<Source, Destination>()
+                .IgnoreProperty<Source>(s => s.Description)
+                .ForMember<Source, Destination, string>(
+                    dest => dest.Description,
+                    value => "Custom Value"
+                );
 
             var source = new Source { Id = 1, Name = "Test", Description = "Should Be Ignored" };
 
@@ -290,12 +290,12 @@ namespace QuickMapper.Tests
         public void Should_Keep_Properties_Ignored_When_Added_After_Custom_Mapping()
         {
             // Arrange
-            _mapper.CreateMap<Source, Destination>();
-            _mapper.ForMember<Source, Destination, string>(
-                dest => dest.Description,
-                value => "Custom Value"
-            );
-            _mapper.IgnoreProperty<Source>(s => s.Description);  // Ignore after custom mapping
+            _mapper.CreateMap<Source, Destination>()
+                .IgnoreProperty<Source>(s => s.Description)  // Ignore after custom mapping
+                .ForMember<Source, Destination, string>(
+                    dest => dest.Description,
+                    value => "Custom Value"
+                );
 
             var source = new Source { Id = 1, Name = "Test", Description = "Should Be Ignored" };
 

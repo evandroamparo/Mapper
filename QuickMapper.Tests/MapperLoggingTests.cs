@@ -35,8 +35,8 @@ namespace QuickMapper.Tests
         {
             // Arrange
             var source = new SourceWithValidation { Id = -1, Name = "Test" };
-            _mapper.CreateMap<SourceWithValidation, DestinationWithConversion>();
-            _mapper.AddValidator<SourceWithValidation>(source => source.Id > 0);
+            _mapper.CreateMap<SourceWithValidation, DestinationWithConversion>()
+                .AddValidator<SourceWithValidation>(source => source.Id > 0);
 
             // Act & Assert
             Assert.Throws<InvalidOperationException>(() =>
@@ -58,11 +58,11 @@ namespace QuickMapper.Tests
         {
             // Arrange
             var source = new SourceWithValidation { Id = 1, Name = "test" };
-            _mapper.CreateMap<SourceWithValidation, DestinationWithConversion>();
-            _mapper.ForMember<SourceWithValidation, DestinationWithConversion, string>(
-                d => d.UpperName,
-                src => ((SourceWithValidation)src).Name.ToUpper()
-            );
+            _mapper.CreateMap<SourceWithValidation, DestinationWithConversion>()
+                .ForMember<SourceWithValidation, DestinationWithConversion, string>(
+                    d => d.UpperName,
+                    src => ((SourceWithValidation)src).Name.ToUpper()
+                );
 
             // Act
             var result = _mapper.Map<SourceWithValidation, DestinationWithConversion>(source);
@@ -85,9 +85,9 @@ namespace QuickMapper.Tests
         {
             // Arrange
             var source = new SourceWithValidation { Id = 1, Name = null };
-            _mapper.CreateMap<SourceWithValidation, DestinationWithConversion>();
-            _mapper.AddValidator<SourceWithValidation>(source => source.Id > 0);
-            _mapper.AddValidator<SourceWithValidation>(source => !string.IsNullOrEmpty(source.Name));
+            _mapper.CreateMap<SourceWithValidation, DestinationWithConversion>()
+                .AddValidator<SourceWithValidation>(source => source.Id > 0)
+                .AddValidator<SourceWithValidation>(source => !string.IsNullOrEmpty(source.Name));
 
             // Act & Assert
             Assert.Throws<InvalidOperationException>(() =>
@@ -132,8 +132,8 @@ namespace QuickMapper.Tests
         {
             // Arrange
             var source = new SourceWithValidation { Id = 1, Name = "Test", Description = "Ignore me" };
-            _mapper.CreateMap<SourceWithValidation, DestinationWithConversion>();
-            _mapper.IgnoreProperty<SourceWithValidation>(s => s.Description);
+            _mapper.CreateMap<SourceWithValidation, DestinationWithConversion>()
+                .IgnoreProperty<SourceWithValidation>(s => s.Description);
 
             // Act
             var result = _mapper.Map<SourceWithValidation, DestinationWithConversion>(source);

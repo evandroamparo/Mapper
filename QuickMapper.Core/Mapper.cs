@@ -5,10 +5,10 @@ namespace QuickMapper.Core
 {
     public interface IMapper
     {
-        void CreateMap<TSource, TDestination>();
+        IMapper CreateMap<TSource, TDestination>();
         void CreateReverseMap<TSource, TDestination>();
-        void IgnoreProperty<TSource>(Expression<Func<TSource, object>> propertyExpression);
-        void AddValidator<TSource>(Func<TSource, bool> validator);
+        IMapper IgnoreProperty<TSource>(Expression<Func<TSource, object>> propertyExpression);
+        IMapper AddValidator<TSource>(Func<TSource, bool> validator);
         TDestination Map<TSource, TDestination>(TSource source) where TDestination : new();
         void ForMember<TSource, TDestination, TMember>(
             Expression<Func<TDestination, TMember?>> destinationMember,
@@ -23,7 +23,7 @@ namespace QuickMapper.Core
         private readonly HashSet<string> _ignoredProperties = [];
         private readonly ILogger<Mapper> _logger = logger;
 
-        public void CreateMap<TSource, TDestination>()
+        public IMapper CreateMap<TSource, TDestination>()
         {
             var key = (typeof(TSource), typeof(TDestination));
             if (!_mappings.ContainsKey(key))
@@ -39,6 +39,7 @@ namespace QuickMapper.Core
                 };
                 _memberMappings[key] = [];
             }
+            return this;
         }
 
         private void MapProperty((Type, Type) key, System.Reflection.PropertyInfo destProp, object src, object dest)
@@ -171,7 +172,7 @@ namespace QuickMapper.Core
             CreateMap<TDestination, TSource>();
         }
 
-        public void IgnoreProperty<TSource>(Expression<Func<TSource, object>> propertyExpression)
+        public IMapper IgnoreProperty<TSource>(Expression<Func<TSource, object>> propertyExpression)
         {
             var memberExpr = propertyExpression.Body as MemberExpression
                            ?? ((UnaryExpression)propertyExpression.Body).Operand as MemberExpression;
@@ -180,11 +181,13 @@ namespace QuickMapper.Core
                 _ignoredProperties.Add(memberExpr.Member.Name);
                 _logger.LogInformation("Property {PropertyName} marked as ignored", memberExpr.Member.Name);
             }
+            return this;
         }
 
-        public void AddValidator<TSource>(Func<TSource, bool> validator)
+        public IMapper AddValidator<TSource>(Func<TSource, bool> validator)
         {
             _validators.Add(src => validator((TSource)src));
+            return this;
         }
 
         public void ForMember<TSource, TDestination, TMember>(
