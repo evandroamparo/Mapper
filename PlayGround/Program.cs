@@ -21,7 +21,7 @@ var userDto = new UserDto { Name = "John Doe", Age = 30 };
 var userEntity = mapper.Map<UserDto, UserEntity>(userDto);
 Console.WriteLine($"Mapped User: {userEntity.Name}, Age: {userEntity.Age}");
 
-// Mapping of nested objects
+// Nested objects
 var userWithAddressDto = new UserWithAddressDto
 {
     Name = "Jane Doe",
@@ -30,7 +30,7 @@ var userWithAddressDto = new UserWithAddressDto
 var userWithAddressEntity = mapper.Map<UserWithAddressDto, UserEntity>(userWithAddressDto);
 Console.WriteLine($"Mapped User with Address: {userWithAddressEntity.Name}, Address: {userWithAddressEntity.Address.Street}, {userWithAddressEntity.Address.City}");
 
-// Mapping of collections
+// Nollections
 var orderDto = new OrderDto
 {
     Items =
@@ -44,7 +44,7 @@ Console.WriteLine($"Mapped Order with {orderEntity.Items.Count} items:");
 foreach (var item in orderEntity.Items)
     Console.WriteLine($"  - {item.ProductName}: {item.Quantity}");
 
-// Conversor personalizado: sufixar o nome
+// Custom converter: sufix the name with " (mapped)"
 mapper.ForMember<UserDto, UserEntity, string>(
     dest => dest.Name,
     src => $"{src.Name} (mapped)"
@@ -54,7 +54,7 @@ var customUser = new UserDto { Name = "Alice", Age = 25 };
 var customMappedUser = mapper.Map<UserDto, UserEntity>(customUser);
 Console.WriteLine($"User with custom mapped name: {customMappedUser.Name}");
 
-// Mapeamento bidirecional
+// Bidirectional mapping
 mapper.CreateReverseMap<UserDto, UserEntity>();
 var reverseEntity = new UserEntity { Name = "Carlos", Age = 40 };
 var reverseDto = mapper.Map<UserEntity, UserDto>(reverseEntity);
@@ -88,6 +88,6 @@ void ConfigureMappings(IMapper mapper)
           .CreateMap<OrderDto, Order>()
           .CreateMap<ItemDto, Item>();
 
-    // Bidirecional
+    // Bidirectional mapping
     mapper.CreateReverseMap<UserDto, UserEntity>();
 }
