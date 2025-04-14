@@ -143,6 +143,23 @@ var logger = loggerFactory.CreateLogger<Mapper>();
 var mapper = new Mapper(logger); // Logger is required
 ```
 
+### Fluent Interface Example
+```csharp
+// Create and configure the mapper using fluent interface
+var logger = LoggerFactory.Create(builder => builder.AddConsole())
+    .CreateLogger<Mapper>();
+var mapper = new Mapper(logger);
+
+// Using fluent interface for mapping
+mapper.CreateMap<UserDto, UserEntity>()
+    .AddValidator<UserDto>(src => !string.IsNullOrEmpty(src.Name))
+    .IgnoreProperty<UserDto>(src => src.Age);
+
+// Perform the mapping
+var dto = new UserDto { Name = "Jane Doe", Age = 25 };
+var entity = mapper.Map<UserDto, UserEntity>(dto);
+```
+
 ### Dependency Injection Setup
 
 ```csharp
