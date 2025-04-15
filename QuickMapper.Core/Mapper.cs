@@ -48,6 +48,13 @@ namespace QuickMapper.Core
                 return;
 
             var sourceProp = key.Item1.GetProperty(destProp.Name);
+
+            if (sourceProp == null && destProp.CanWrite)
+            {
+                if (TryCustomMapping(key, destProp.Name, src, dest, destProp))
+                    return;
+            }
+
             if (sourceProp == null || !destProp.CanWrite)
                 return;
 
@@ -241,14 +248,14 @@ namespace QuickMapper.Core
             }
 
             var key = (typeof(TSource), typeof(TDestination));
-            if (!_mappings.TryGetValue(key, out var value))
+            if (!_mappings.TryGetValue(key, out var mappingAction))
             {
                 _logger.LogError("No mapping defined for {SourceType} to {DestType}", typeof(TSource).Name, typeof(TDestination).Name);
                 throw new InvalidOperationException($"No mapping defined for {typeof(TSource)} to {typeof(TDestination)}");
             }
 
             var destination = new TDestination();
-            value(source, destination);
+            mappingAction(source, destination);
 
             // Only apply custom mappings for non-ignored properties
             foreach (var memberMapping in _memberMappings[key])

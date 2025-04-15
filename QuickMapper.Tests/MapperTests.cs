@@ -68,7 +68,7 @@ namespace QuickMapper.Tests
     public class DestinationItem
     {
         public int Id { get; set; }
-        public string Description { get; set; }
+        public string Name { get; set; }
     }
 
 
@@ -119,17 +119,21 @@ namespace QuickMapper.Tests
         [Fact]
         public void Should_Map_Collections()
         {
-            _mapper.CreateMap<SourceCollection, DestinationCollection>();
-            _mapper.CreateMap<SourceItem, DestinationItem>();
+            _mapper.CreateMap<SourceCollection, DestinationCollection>()
+                .CreateMap<SourceItem, DestinationItem>()
+                .ForMember<SourceItem, DestinationItem, string>(
+                    dest => dest.Name,
+                    value => value.Description
+                );
 
             var source = new SourceCollection
             {
                 Id = 1,
                 Items =
-            [
-                new SourceItem { Id = 101, Description = "Item 1" },
-                new SourceItem { Id = 102, Description = "Item 2" }
-            ]
+                [
+                    new SourceItem { Id = 101, Description = "Item 1" },
+                    new SourceItem { Id = 102, Description = "Item 2" }
+                ]
             };
 
             var destination = _mapper.Map<SourceCollection, DestinationCollection>(source);
@@ -137,7 +141,9 @@ namespace QuickMapper.Tests
             Assert.Equal(source.Id, destination.Id);
             Assert.Equal(source.Items.Count, destination.Items.Count);
             Assert.Equal(source.Items[0].Id, destination.Items[0].Id);
-            Assert.Equal(source.Items[0].Description, destination.Items[0].Description);
+            Assert.Equal(source.Items[0].Description, destination.Items[0].Name);
+            Assert.Equal(source.Items[1].Id, destination.Items[1].Id);
+            Assert.Equal(source.Items[1].Description, destination.Items[1].Name);
         }
 
         [Fact]

@@ -30,7 +30,7 @@ var userWithAddressDto = new UserWithAddressDto
 var userWithAddressEntity = mapper.Map<UserWithAddressDto, UserEntity>(userWithAddressDto);
 Console.WriteLine($"Mapped User with Address: {userWithAddressEntity.Name}, Address: {userWithAddressEntity.Address.Street}, {userWithAddressEntity.Address.City}");
 
-// Nollections
+// Collections with custom mapping
 var orderDto = new OrderDto
 {
     Items =
@@ -39,10 +39,15 @@ var orderDto = new OrderDto
             new ItemDto { ProductName = "Item2", Quantity = 3 }
         ]
 };
+mapper.ForMember<ItemDto, Item, string>(
+    dest => dest.Name,
+    src => src.ProductName
+);
+
 var orderEntity = mapper.Map<OrderDto, Order>(orderDto);
 Console.WriteLine($"Mapped Order with {orderEntity.Items.Count} items:");
 foreach (var item in orderEntity.Items)
-    Console.WriteLine($"  - {item.ProductName}: {item.Quantity}");
+    Console.WriteLine($"  - {item.Name}: {item.Quantity}");
 
 // Custom converter: sufix the name with " (mapped)"
 mapper.ForMember<UserDto, UserEntity, string>(
@@ -84,7 +89,6 @@ void ConfigureMappings(IMapper mapper)
 {
     mapper.CreateMap<UserDto, UserEntity>()
           .CreateMap<UserWithAddressDto, UserEntity>()
-          .CreateMap<AddressDto, AddressDto>() // Caso queira fazer deep copy de Address
           .CreateMap<OrderDto, Order>()
           .CreateMap<ItemDto, Item>();
 
